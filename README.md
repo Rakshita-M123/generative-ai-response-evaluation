@@ -119,14 +119,3 @@ Run the script to generate the actual report for the bundled dataset.
 5. Add semantic similarity or rubric-based evaluation, and validate it against human labels.
 6. Add CI tests with GitHub Actions.
 
-## How to describe it on a resume
-
-After you run and understand the project, you can use wording like:
-
-**Generative AI Response Evaluation Framework | Python, CSV, Unit Testing**
-- Built a rule-based evaluation framework to assess sample AI responses against reference answers and expected keywords.
-- Designed structured test cases and categorized potential response issues for human review.
-- Generated CSV evaluation reports with per-case scores and a summary pass rate.
-- Added unit tests for scoring logic and repeatable regression checks.
-
-Only claim features you have actually run and can explain in an interview.
