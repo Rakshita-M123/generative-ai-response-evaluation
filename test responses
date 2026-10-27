@@ -1,0 +1,66 @@
+import sys
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+
+from evaluate_responses import evaluate_case, keyword_coverage, reference_overlap
+
+
+class EvaluationTests(unittest.TestCase):
+    def test_exact_correct_answer_passes(self):
+        case = {
+            "test_id": "T1",
+            "category": "factual",
+            "prompt": "What is Python?",
+            "reference_answer": "Python is a programming language.",
+            "ai_response": "Python is a programming language.",
+            "expected_keywords": "python|programming language",
+            "expected_behavior": "Give a definition",
+        }
+        result = evaluate_case(case)
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["score"], "100")
+        self.assertEqual(result["issue_flags"], "NONE")
+
+    def test_empty_response_is_flagged(self):
+        case = {
+            "test_id": "T2",
+            "category": "negative",
+            "prompt": "Question",
+            "reference_answer": "Python",
+            "ai_response": "",
+            "expected_keywords": "python",
+            "expected_behavior": "Answer",
+        }
+        result = evaluate_case(case)
+        self.assertEqual(result["status"], "REVIEW")
+        self.assertIn("EMPTY_RESPONSE", result["issue_flags"])
+
+    def test_wrong_response_is_flagged_for_review(self):
+        case = {
+            "test_id": "T3",
+            "category": "factual",
+            "prompt": "Is the Sun a planet?",
+            "reference_answer": "No. The Sun is a star.",
+            "ai_response": "The Sun is a planet.",
+            "expected_keywords": "sun|star",
+            "expected_behavior": "Distinguish star and planet",
+        }
+        result = evaluate_case(case)
+        self.assertEqual(result["status"], "REVIEW")
+        self.assertIn("MISSING_EXPECTED_KEYWORDS", result["issue_flags"])
+
+    def test_reference_overlap(self):
+        self.assertEqual(reference_overlap("Python is a language", "Python is a language"), 1.0)
+        self.assertLess(reference_overlap("unrelated response", "Python is a language"), 1.0)
+
+    def test_keyword_coverage(self):
+        coverage, missing = keyword_coverage("Python is useful", ["python", "sql"])
+        self.assertEqual(coverage, 0.5)
+        self.assertEqual(missing, ["sql"])
+
+
+if __name__ == "__main__":
+    unittest.main()
