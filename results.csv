@@ -1,0 +1,21 @@
+﻿test_id,category,score,status,issue_flags,reference_overlap,keyword_coverage,response_length,review_note
+AI001,factual,100,PASS,NONE,1,1,56,Heuristic checks passed; still review factual correctness.
+AI002,factual,68,REVIEW,MISSING_EXPECTED_KEYWORDS,0.67,0.5,38,Human review recommended; flags are not proof of a hallucination.
+AI003,arithmetic,100,PASS,NONE,1,1,1,Heuristic checks passed; still review factual correctness.
+AI004,instruction_following,100,PASS,NONE,1,1,4,Heuristic checks passed; still review factual correctness.
+AI005,negative,20,REVIEW,LOW_REFERENCE_OVERLAP|MISSING_EXPECTED_KEYWORDS,0,0,25,Human review recommended; flags are not proof of a hallucination.
+AI006,factual,100,PASS,NONE,1,1,44,Heuristic checks passed; still review factual correctness.
+AI007,factual,100,PASS,NONE,1,1,93,Heuristic checks passed; still review factual correctness.
+AI008,instruction_following,100,PASS,NONE,1,1,117,Heuristic checks passed; still review factual correctness.
+AI009,factual,100,PASS,NONE,1,1,76,Heuristic checks passed; still review factual correctness.
+AI010,negative,20,REVIEW,LOW_REFERENCE_OVERLAP|MISSING_EXPECTED_KEYWORDS,0,0,26,Human review recommended; flags are not proof of a hallucination.
+AI011,factual,97,PASS,NONE,0.94,1,99,Heuristic checks passed; still review factual correctness.
+AI012,instruction_following,100,PASS,NONE,1,1,4,Heuristic checks passed; still review factual correctness.
+AI013,negative,0,REVIEW,EMPTY_RESPONSE|MISSING_EXPECTED_KEYWORDS,0,0,0,Human review recommended; flags are not proof of a hallucination.
+AI014,factual,100,PASS,NONE,1,1,103,Heuristic checks passed; still review factual correctness.
+AI015,factual,96,PASS,NONE,0.93,1,113,Heuristic checks passed; still review factual correctness.
+AI016,reasoning,100,PASS,NONE,1,1,53,Heuristic checks passed; still review factual correctness.
+AI017,instruction_following,20,REVIEW,LOW_REFERENCE_OVERLAP|MISSING_EXPECTED_KEYWORDS,0,0,40,Human review recommended; flags are not proof of a hallucination.
+AI018,factual,100,PASS,NONE,1,1,78,Heuristic checks passed; still review factual correctness.
+AI019,negative,35,REVIEW,LOW_REFERENCE_OVERLAP|MISSING_EXPECTED_KEYWORDS,0,0.5,58,Human review recommended; flags are not proof of a hallucination.
+AI020,factual,93,PASS,NONE,0.87,1,80,Heuristic checks passed; still review factual correctness.
