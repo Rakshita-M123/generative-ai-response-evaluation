@@ -1,0 +1,160 @@
+
+from __future__ import annotations
+
+import argparse
+import csv
+import re
+from collections import Counter
+from pathlib import Path
+from typing import Dict, List, Tuple
+
+WORD_RE = re.compile(r"[a-z0-9]+", re.IGNORECASE)
+
+
+def normalize_words(text: str) -> List[str]:
+    """Return lowercase alphanumeric tokens from text."""
+    return [word.lower() for word in WORD_RE.findall(text or "")]
+
+
+def parse_keywords(value: str) -> List[str]:
+    """Parse pipe-separated expected keywords."""
+    return [item.strip().lower() for item in (value or "").split("|") if item.strip()]
+
+
+def keyword_coverage(response: str, keywords: List[str]) -> Tuple[float, List[str]]:
+    """Return keyword coverage and missing keywords.
+
+    Each keyword entry may contain multiple words. Matching is substring-based
+    after lowercasing to keep this starter implementation easy to understand.
+    """
+    if not keywords:
+        return 1.0, []
+    normalized_response = (response or "").lower()
+    present = [keyword for keyword in keywords if keyword in normalized_response]
+    missing = [keyword for keyword in keywords if keyword not in normalized_response]
+    return len(present) / len(keywords), missing
+
+
+def reference_overlap(response: str, reference: str) -> float:
+    """Compute reference-token recall: shared unique reference words / reference words.
+
+    This simplistic measure is not semantic similarity and does not establish truth.
+    """
+    reference_tokens = set(normalize_words(reference))
+    if not reference_tokens:
+        return 1.0 if not (response or "").strip() else 0.0
+    response_tokens = set(normalize_words(response))
+    return len(reference_tokens & response_tokens) / len(reference_tokens)
+
+
+def evaluate_case(case: Dict[str, str]) -> Dict[str, str]:
+    """Evaluate one row and return report fields."""
+    response = (case.get("ai_response") or "").strip()
+    reference = (case.get("reference_answer") or "").strip()
+    keywords = parse_keywords(case.get("expected_keywords", ""))
+    overlap = reference_overlap(response, reference)
+    coverage, missing = keyword_coverage(response, keywords)
+
+    flags = []
+    if not response:
+        flags.append("EMPTY_RESPONSE")
+    if response and overlap < 0.35:
+        flags.append("LOW_REFERENCE_OVERLAP")
+    if missing:
+        flags.append("MISSING_EXPECTED_KEYWORDS")
+
+    presence_points = 20 if response else 0
+    overlap_points = round(overlap * 50)
+    keyword_points = round(coverage * 30)
+    score = min(100, presence_points + overlap_points + keyword_points)
+
+    passed = bool(response) and score >= 60 and not missing
+    status = "PASS" if passed else "REVIEW"
+    if not flags and not passed:
+        flags.append("SCORE_BELOW_THRESHOLD")
+
+    note = (
+        "Heuristic checks passed; still review factual correctness."
+        if passed
+        else "Human review recommended; flags are not proof of a hallucination."
+    )
+    return {
+        "test_id": case.get("test_id", ""),
+        "category": case.get("category", ""),
+        "score": str(score),
+        "status": status,
+        "issue_flags": "|".join(flags) if flags else "NONE",
+        "reference_overlap": f"{overlap:.2f}",
+        "keyword_coverage": f"{coverage:.2f}",
+        "response_length": str(len(response)),
+        "review_note": note,
+    }
+
+
+def load_cases(path: Path) -> List[Dict[str, str]]:
+    """Load test cases from CSV and validate required columns."""
+    required = {
+        "test_id", "category", "prompt", "reference_answer",
+        "ai_response", "expected_keywords", "expected_behavior"
+    }
+    with path.open("r", newline="", encoding="utf-8-sig") as file:
+        reader = csv.DictReader(file)
+        missing = required - set(reader.fieldnames or [])
+        if missing:
+            raise ValueError(f"Input CSV is missing required columns: {', '.join(sorted(missing))}")
+        cases = list(reader)
+    if not cases:
+        raise ValueError(f"No test cases found in {path}")
+    return cases
+
+
+def write_report(results: List[Dict[str, str]], output_path: Path) -> None:
+    """Write evaluation results and print a compact summary."""
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fieldnames = [
+        "test_id", "category", "score", "status", "issue_flags",
+        "reference_overlap", "keyword_coverage", "response_length", "review_note"
+    ]
+    with output_path.open("w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(results)
+
+    status_counts = Counter(result["status"] for result in results)
+    flag_counts = Counter(
+        flag
+        for result in results
+        for flag in result["issue_flags"].split("|")
+        if flag != "NONE"
+    )
+    pass_rate = (status_counts.get("PASS", 0) / len(results)) * 100
+    print("Generative AI Response Evaluation Report")
+    print("=" * 42)
+    print(f"Cases evaluated: {len(results)}")
+    print(f"PASS: {status_counts.get('PASS', 0)}")
+    print(f"REVIEW: {status_counts.get('REVIEW', 0)}")
+    print(f"Heuristic pass rate: {pass_rate:.1f}%")
+    print("Issue flags:")
+    if flag_counts:
+        for flag, count in sorted(flag_counts.items()):
+            print(f"  - {flag}: {count}")
+    else:
+        print("  - None")
+    print(f"Report saved to: {output_path}")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Evaluate sample AI responses using simple heuristics.")
+    parser.add_argument("--input", default="data/evaluation_test_cases.csv", help="Input CSV path")
+    parser.add_argument("--output", default="results/evaluation_report.csv", help="Output report CSV path")
+    args = parser.parse_args()
+
+    input_path = Path(args.input)
+    output_path = Path(args.output)
+    cases = load_cases(input_path)
+    results = [evaluate_case(case) for case in cases]
+    write_report(results, output_path)
+
+
+if __name__ == "__main__":
+    main()
